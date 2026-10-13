@@ -82,6 +82,26 @@ python -m src.cli --question "Who won the world cup in 1958?"
 python -m src.cli --corpus-profile training-rag --question "Why are citations important in RAG?"
 ```
 
+## Run the local web app
+
+Install the dependencies as shown in Setup, then start Streamlit from the project root:
+
+```powershell
+.\.venv-win\Scripts\python.exe -m streamlit run app.py --server.address localhost
+```
+
+On macOS/Linux, use `python -m streamlit run app.py --server.address localhost`
+from the activated virtual environment. Open the local address printed by
+Streamlit in your browser. You only need the terminal to start or stop the server;
+enter questions in the browser.
+
+The sidebar lets you choose the corpus profile, chunk size, overlap, and number
+of retrieved chunks (`top-k`). The app shows the answer or refusal, references,
+and expandable retrieved chunks with their scores and source IDs. Each question
+is independent, and the displayed history lasts only for the current browser
+session. Use **Obriši istoriju** to clear it. The app uses the same built-in
+corpus as the CLI; edit `src/corpus.py` to change those sources.
+
 ## Corpus profiles
 
 - `default`: compact baseline corpus for Week 6 fundamentals.
