@@ -50,11 +50,19 @@ def _best_complete_sentence(question: str, chunk_text: str) -> tuple[str, float]
     return (best, score) if score > 0 else None
 
 
-def build_grounded_answer(question: str, chunks: list[Chunk], top_k: int = 2) -> RagAnswer:
+def build_grounded_answer(
+    question: str, chunks: list[Chunk], top_k: int = 2, *, support_scope: str = "document"
+) -> RagAnswer:
+    if support_scope not in {"document", "chunk"}:
+        raise ValueError("support_scope must be 'document' or 'chunk'")
     results = retrieve_top_k(question, chunks, k=top_k)
-    # Combine only chunks from the same source document when checking support.
+    # Check support in one document for existing profiles, or one chunk for book retrieval.
     for item in results:
-        same_document = [result for result in results if result.chunk.doc_id == item.chunk.doc_id]
+        same_document = (
+            [item]
+            if support_scope == "chunk"
+            else [result for result in results if result.chunk.doc_id == item.chunk.doc_id]
+        )
         combined_text = " ".join(result.chunk.text for result in same_document)
         if not _supported_by(question, combined_text):
             continue
@@ -64,6 +72,8 @@ def build_grounded_answer(question: str, chunks: list[Chunk], top_k: int = 2) ->
             best = _best_complete_sentence(question, result.chunk.text)
             if best is not None:
                 sentence, score = best
+                if support_scope == "chunk" and not _supported_by(question, sentence):
+                    continue
                 candidates.append((sentence, score, result.chunk.chunk_id))
         if candidates:
             sentence, _, citation = max(candidates, key=lambda candidate: candidate[1])

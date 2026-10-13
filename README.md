@@ -95,17 +95,47 @@ from the activated virtual environment. Open the local address printed by
 Streamlit in your browser. You only need the terminal to start or stop the server;
 enter questions in the browser.
 
-The sidebar lets you choose the corpus profile, chunk size, overlap, and number
-of retrieved chunks (`top-k`). The app shows the answer or refusal, references,
-and expandable retrieved chunks with their scores and source IDs. Each question
-is independent, and the displayed history lasts only for the current browser
-session. Use **Obriši istoriju** to clear it. The app uses the same built-in
-corpus as the CLI; edit `src/corpus.py` to change those sources.
+The sidebar lets you choose the corpus profile, chunk size, overlap, answer mode,
+and number of retrieved chunks (`top-k`). The app shows the answer or refusal,
+references, and expandable retrieved chunks with their scores and source IDs.
+Each question is independent, and the displayed history lasts only for the
+current browser session. Use **Obriši istoriju** to clear it.
+
+Available corpora are `default`, `training-rag`, and the optional
+`Mott — Gutenberg 13111` book profile. The built-in corpus is defined in
+`src/corpus.py`.
+
+Choose **Mott — Gutenberg 13111** to use the book corpus. On first use, select
+**Preuzmi knjigu**; the UTF-8 source and its download metadata are saved under
+`data/`, which is excluded from Git. This profile uses paragraph and sentence
+chunks. The book was published in 1910 and may contain outdated science; its
+answers are not current medical guidance.
+
+Choose **Gemini** (`gemini-3.1-flash-lite`) to generate an answer from retrieved
+passages. After you submit a question, the question and passages are sent to
+Google, and usage may count against your API quota. The app checks that each
+Gemini citation points to a retrieved chunk and that its exact
+evidence quote appears in that chunk. If citation validation fails, the app
+refuses the answer. This checks citation identity and quote presence; it cannot
+prove every paraphrase is fully entailed, so review the displayed passages.
+
+Set a Gemini API key in the terminal before starting the app. Create a key in
+[Google AI Studio](https://aistudio.google.com/app/apikey), then in PowerShell:
+
+```powershell
+$env:GEMINI_API_KEY = "your-api-key"
+.\.venv-win\Scripts\python.exe -m streamlit run app.py --server.address localhost
+```
+
+On macOS/Linux, use `export GEMINI_API_KEY="your-api-key"` before the Streamlit
+command. Never commit the key to Git. Without a key, **Extractive** mode remains
+available and Gemini mode is disabled.
 
 ## Corpus profiles
 
 - `default`: compact baseline corpus for Week 6 fundamentals.
 - `training-rag`: profile mirroring examples with focus on citations, references, and LLM-as-a-judge framing.
+- `mott-13111`: optional Project Gutenberg book corpus; download it from Streamlit before using it in the CLI.
 
 ## How this starter decides what to answer
 
@@ -125,14 +155,23 @@ quotes a complete sentence from a retrieved chunk and cites that chunk ID. For a
 "why" question, a matching causal sentence is preferred. When this check cannot
 find a complete supported sentence, the system refuses and gives no references.
 This is a conservative lexical demonstration, not a general guarantee of factual
-entailment; the small built-in corpus and exact English word matching limit what
-it can answer.
+entailment; exact English word matching limits what it can answer, and the
+`default` profile is intentionally small.
+
+For the Mott book profile, paragraph/sentence chunks are checked independently
+so matches from distant passages cannot combine to satisfy the support check.
+Gemini mode receives only the top retrieved chunks and validates the cited IDs
+and exact evidence quotes before displaying an answer.
 
 The CLI prints the retrieval trace, answer, refusal status, and references. The
 same retrieval results are used for the trace and answer, so a cited ID can be
 checked against the displayed chunks.
 
 ## Submission evidence
+
+The Mott corpus retrieval comparison and 20-question manual test set are
+recorded in `docs/book-evaluation.md`. The implementation scope
+and joint approval record are in `docs/gutenberg-book-rag-upgrade-plan.md`.
 
 - `evidence.md` contains the five required outcomes, commands, outputs, and a test snapshot.
 - `docs/homework-checklist.md` tracks completed requirements.
@@ -147,28 +186,21 @@ checked against the displayed chunks.
 4. **Outcome 4 (refusal):** ensure unsupported questions trigger refusal instead of hallucinated answers.
 5. **Outcome 5 (evidence):** document one supported and one unsupported query with full retrieval and output evidence.
 
-## Recommended evidence template (`evidence.md`)
+## Evidence summary
 
-Use this exact structure for easy review:
+The complete commands and outputs are in [`evidence.md`](evidence.md). The
+recorded examples cover all five outcomes:
 
-1. **Outcome 1: Chunking impact**
-  - Config A:
-  - Config B:
-  - Retrieval difference summary:
-2. **Outcome 2: Top-k retrieval**
-  - Query:
-  - Top-k output:
-  - Why ranking is correct:
-3. **Outcome 3: Citation quality**
-  - Supported query:
-  - Answer with citations:
-  - Retrieved chunk IDs:
-4. **Outcome 4: Refusal behavior**
-  - Unsupported query:
-  - Retrieved context:
-  - Refusal output:
-5. **Outcome 5: Final evidence pair**
-  - Supported case command + output
-  - Unsupported case command + output
+1. **Chunking impact:** `chunk_size=140, overlap=30` splits the traceability
+   sentence; `chunk_size=220, overlap=40` keeps it together and supports an
+   answer to “How does metadata help source traceability?”
+2. **Top-k retrieval:** the query “How do citations and references improve
+   trust?” is shown with `top_k=2` and `top_k=3`, including scores and ranking.
+3. **Citation quality:** “Why are citations important in RAG?” is answered with
+   the retrieved source `tr-doc-1-chunk-1`.
+4. **Refusal:** “Who won the world cup in 1958?” is refused because the default
+   corpus has no supporting result.
+5. **Final evidence pair:** `evidence.md` includes reproducible CLI commands
+   and outputs for a supported and an unsupported question.
 
 Use `docs/homework-checklist.md` as submission guidance.

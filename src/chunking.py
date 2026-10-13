@@ -9,6 +9,7 @@ class Chunk:
     doc_id: str
     title: str
     text: str
+    source_url: str | None = None
 
 
 def split_text_with_overlap(text: str, chunk_size: int = 140, overlap: int = 30) -> list[str]:
@@ -50,6 +51,7 @@ def build_chunks(documents: list[Document], chunk_size: int = 140, overlap: int 
                     doc_id=doc.doc_id,
                     title=doc.title,
                     text=part,
+                    source_url=doc.source_url,
                 )
             )
     return chunks

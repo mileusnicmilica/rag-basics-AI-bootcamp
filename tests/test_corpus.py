@@ -7,6 +7,7 @@ def test_list_corpus_profiles_contains_training_rag() -> None:
     profiles = list_corpus_profiles()
     assert "default" in profiles
     assert "training-rag" in profiles
+    assert "mott-13111" in profiles
 
 
 def test_load_training_rag_corpus_has_expected_topic() -> None:

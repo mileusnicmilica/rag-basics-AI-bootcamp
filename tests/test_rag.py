@@ -53,3 +53,17 @@ def test_sentence_fragment_is_not_presented_as_an_answer() -> None:
     result = build_grounded_answer("What helps source traceability?", [chunk])
     assert result.refused is True
     assert result.citations == []
+
+
+def test_chunk_support_scope_does_not_combine_distant_passages() -> None:
+    chunks = [
+        Chunk("first", "same-book-section", "Section", "Voice uses the larynx."),
+        Chunk("second", "same-book-section", "Section", "The left hemisphere is dominant."),
+    ]
+    question = "voice larynx left hemisphere"
+
+    document_scope = build_grounded_answer(question, chunks, top_k=2)
+    chunk_scope = build_grounded_answer(question, chunks, top_k=2, support_scope="chunk")
+
+    assert document_scope.refused is False
+    assert chunk_scope.refused is True
